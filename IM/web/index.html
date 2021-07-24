@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>IM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style type="text/css">
+    body {
+      background-color: #789; margin: 0;
+      padding: 0; font: 14px Helvetica, Arial, sans-serif;
+    }
+    div.content {
+        width: 800px; height:600px;margin: 2em auto; padding: 20px 50px;
+        background-color: #fff; border-radius: 1em;
+    }
+    #messages {
+      border: 2px solid #fec; border-radius: 0em;
+      height: 30em; overflow: scroll; padding: 0.5em 1em;
+    }
+    #send_input{
+        width:650px;
+    }
+    a:link, a:visited { color: #69c; text-decoration: none; }
+    @media (max-width: 700px) {
+      body { background-color: #fff; }
+      div.content {
+        width: auto; margin: 0 auto; border-radius: 0;
+        padding: 1em;
+      }
+    }
+    #info{
+        animation:change 10s linear 0s infinite;font-size:15px;font-weight:60;
+    }
+    #user_name{
+        animation:change 5s linear 0s infinite;font-size:12px;font-weight:50;
+    }
+    @keyframes change{
+        0%   {color:#333;}
+        25%  {color:#ff0;}
+        50%  {color:#f60;}
+        75%  {color:#cf0;}
+        100% {color:#f00;}
+    }
+  </style>
+
+</head>
+
+<body>
+  <div id="app">
+    <div class="content">
+      <h1>欢迎来到我的IM聊天系统</h1>
+
+      <p>
+      </p>
+
+      <div id="messages"> 
+      </div>
+
+      <p>
+        <!-- //v-model双向绑定send_msg -->
+        <input type="text" id="send_input" v-model="send_msg" />
+        <!-- //设置点击事件 -->
+        <button id="send_button" v-on:click="send()"> 发送 </button>
+        <button id="quit_button" v-on:click="quit()"> 退出 </button>
+      </p>
+    </div>
+  </div>
+</body>
+ 
+<!-- //vue.js -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<!-- //ajax -->
+<script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+<script>
+//创建一个vue对象
+var app = new Vue({
+        //vue对象选择器
+        el: '#app',
+        data: {
+          send_msg:"",//发送的消息
+          websock:null,
+          real_msg:""
+        },
+        methods:{
+          //初始化
+          init:function(){
+            var ws_url="ws://"+window.location.host+"/websocket";//主机地址+请求资源路径
+            this.websock=new WebSocket(ws_url);//new一个websocket对象，创建一个websocket连接
+            //设置回调函数
+            this.websock.onopen=this.wsonopen;//连接建立成功
+            this.websock.onmessage=this.wsonmessage;//收到消息
+            this.websock.onerror=this.wsonerror;//出错
+            this.websock.onclose=this.wsonclose;//连接关闭
+          },
+          //websocket连接建立成功后触发的回调函数
+          wsonopen:function(){
+            alert("聊天通道建立成功")
+          },
+          //通信发生错误时触发的回调函数
+          wsonerror:function(){
+            alert("通信错误")
+            this.init();//出错重新初始化
+          },
+          //连接关闭时触发的回调函数
+          wsonclose:function(){
+            alert("连接关闭")
+          },
+          //收到消息后触发的回调函数,e.data就是收到的数据
+          wsonmessage:function(e){
+            var com_div=document.createElement("div");
+            com_div.innerHTML=e.data;
+            var html_div=document.getElementById("messages");//获取message控件
+            html_div.appendChild(com_div);//添加一个子标签
+          },
+          //分割字符串
+          get_cookie_name:function(){
+            var cookie=document.cookie;
+            var cookie_arry=cookie.split("; ");
+            for(var i=0;i<cookie_arry.length;i++){
+              var arry=cookie_arry[i].split("=");
+              if(arry[0]=="NAME"){
+                return arry[1];
+              }
+            }
+            return "匿名";
+          },
+          //send点击事件
+          send:function(){
+            console.log("call send function");//打印日志
+            if(this.send_msg.length==0){
+              alert("消息不能为空")
+              return;
+            }
+            var username=this.get_cookie_name();
+            this.real_msg="<p>"+username+":"+this.send_msg+"</p>";//将消息组织为一个html标签
+            this.websock.send(this.real_msg);//发送
+            this.send_msg="";
+          },
+          //quit点击事件
+          quit:function(){
+            this.websock.close();//关闭websocket连接
+            window.location.href="/login.html"//退出返回登录界面
+          }
+        }
+      });
+      app.init();//vue对象创建成功后，调用init接口，创建websocket连接
+</script>
+
+</html>
+ 
